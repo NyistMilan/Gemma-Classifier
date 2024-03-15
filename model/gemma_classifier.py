@@ -4,7 +4,7 @@ from torch.nn import Sigmoid
 from transformers import AutoModelForSequenceClassification
 
 class GemmaClassifier(nn.Module):
-    def __init__(self, model_name, num_labels=2, dropout=0.1, train=True):
+    def __init__(self, model_name, num_labels=2, train=True):
         super().__init__()
         
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name,
