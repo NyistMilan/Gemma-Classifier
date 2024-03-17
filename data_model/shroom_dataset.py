@@ -2,6 +2,7 @@ import json
 import random
 import pandas as pd
 from pathlib import Path
+import torch.nn.functional
 from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 
@@ -30,12 +31,13 @@ class ShroomDataset(Dataset):
 
         data = []
         separator = '[SEP]'
-        
+
         for entry in raw_data:
             concatenated = entry['src'] + separator + entry['hyp']
             label = int(entry.get('p(Hallucination)'))
+            label = torch.nn.functional.one_hot(torch.tensor(label), num_classes=2).tolist()
             data.append({'src' : entry['src'], 'hyp' : entry['hyp'], 'concatenated' : concatenated, 'label' : label})
-                
+
         return data
 
     def get_split(self):
@@ -43,13 +45,17 @@ class ShroomDataset(Dataset):
         train_data, val_data = train_test_split(self.data, test_size=0.1)
 
         df = pd.DataFrame(train_data)
-        ratio_of_non_factuals = len(df[df['label'] == 1]) / len(df[df['label'] == 0])
-        df = df.drop(df[(df['label'] == 0)].sample(frac=(ratio_of_non_factuals)).index)
+        non_factuals = df['label'].apply(lambda x: x == [0, 1])
+        factuals = df['label'].apply(lambda x: x == [1, 0])
+        ratio_of_non_factuals = non_factuals.sum() / factuals.sum()
+        df = df.drop(df[factuals].sample(frac=(ratio_of_non_factuals)).index)
         train_data = df.to_dict(orient='records')
 
         df = pd.DataFrame(val_data)
-        ratio_of_non_factuals = len(df[df['label'] == 1]) / len(df[df['label'] == 0])
-        df = df.drop(df[(df['label'] == 0)].sample(frac=(ratio_of_non_factuals)).index)
+        non_factuals = df['label'].apply(lambda x: x == [0, 1])
+        factuals = df['label'].apply(lambda x: x == [1, 0])
+        ratio_of_non_factuals = non_factuals.sum() / factuals.sum()
+        df = df.drop(df[factuals].sample(frac=(ratio_of_non_factuals)).index)
         val_data = df.to_dict(orient='records')
 
         return train_data, val_data
