@@ -30,7 +30,7 @@ class ShroomDataset(Dataset):
         raw_data = flatten(raw_data)
 
         data = []
-        separator = '[SEP]'
+        separator = '<separator>'
 
         for entry in raw_data:
             concatenated = entry['src'] + separator + entry['hyp']
@@ -48,14 +48,14 @@ class ShroomDataset(Dataset):
         non_factuals = df['label'].apply(lambda x: x == [0, 1])
         factuals = df['label'].apply(lambda x: x == [1, 0])
         ratio_of_non_factuals = non_factuals.sum() / factuals.sum()
-        df = df.drop(df[factuals].sample(frac=(ratio_of_non_factuals)).index)
+        df = df.drop(df[factuals].sample(frac=(1 - ratio_of_non_factuals)).index)
         train_data = df.to_dict(orient='records')
 
         df = pd.DataFrame(val_data)
         non_factuals = df['label'].apply(lambda x: x == [0, 1])
         factuals = df['label'].apply(lambda x: x == [1, 0])
         ratio_of_non_factuals = non_factuals.sum() / factuals.sum()
-        df = df.drop(df[factuals].sample(frac=(ratio_of_non_factuals)).index)
+        df = df.drop(df[factuals].sample(frac=(1 - ratio_of_non_factuals)).index)
         val_data = df.to_dict(orient='records')
 
         return train_data, val_data
