@@ -15,7 +15,7 @@ def tokenize_dataset(dataset, model_name):
 
     for data_point in dataset:
         tokenized_concatenated = tokenizer(data_point['src'], data_point['hyp'],
-                                           max_length=512,
+                                           max_length=1024,
                                            truncation=True, padding='max_length', return_tensors="pt")
 
         data_point['input_ids'] = tokenized_concatenated['input_ids']
@@ -106,7 +106,8 @@ def eval(model, val_loader, num_labels, loss_fn):
 @click.option('--lr', default=1e-5)
 @click.option('--train_flag', default=True)
 @click.option('--patience', default=10)
-def main(model_name, path, num_labels, epochs, batch_size, lr, train_flag, patience):
+@click.option('--output_path', default='')
+def main(model_name, path, num_labels, epochs, batch_size, lr, train_flag, patience, output_path):
     dataset = ShroomDataset(path)
     tokenize_dataset(dataset, model_name)
     train_dataset, val_dataset = dataset.get_split()
@@ -147,12 +148,14 @@ def main(model_name, path, num_labels, epochs, batch_size, lr, train_flag, patie
                                  recall=recall.tolist(),
                                  f1=f1.tolist())
             curr_patience = 0
+            torch.save(model.state_dict(), f"{output_path}/best_model_state.pth")
         else:
             curr_patience += 1
             if curr_patience == patience:
                 early_stop = True
 
         if early_stop:
+            torch.save(model.state_dict(), f"{output_path}/best_model_state.pth")
             with open(f'results.tsv', 'a') as f:
                 f.write(f"{model_name}\t"
                         f"{train}\t"
